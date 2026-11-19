@@ -1,0 +1,131 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Dossier from '../../layouts/Dossier.astro';
+import Flow from '../../components/Flow.astro';
+import LastCommit from '../../components/LastCommit.astro';
+import Mark from '../../components/Mark.astro';
+import Src from '../../components/Src.astro';
+import StatusPill from '../../components/StatusPill.astro';
+import UpworkButton from '../../components/UpworkButton.astro';
+import { OWNER, ROLE, SITE, href } from '../../consts';
+import { formatDate } from '../../lib/sources';
+
+export async function getStaticPaths() {
+  const all = (await getCollection('work')).sort((a, b) => a.data.order - b.data.order);
+  return all.map((entry, i) => ({
+    params: { slug: entry.data.slug },
+    props: { entry, next: all[(i + 1) % all.length] as CollectionEntry<'work'> },
+  }));
+}
+
+interface Props {
+  entry: CollectionEntry<'work'>;
+  next: CollectionEntry<'work'>;
+}
+
+const { entry, next } = Astro.props;
+const d = entry.data;
+Astro.locals.project = { title: d.title, repo: d.repo, readmeSha: d.readmeSha, lastPush: d.lastPush };
+const { Content, headings } = await render(entry);
+const sections = headings.filter((h) => h.depth === 2);
+const readmeAtCommit = `${d.repo}/blob/${d.readmeSha}/README.md`;
+const shortSha = d.readmeSha.slice(0, 7);
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    name: d.title,
+    description: d.oneLiner,
+    codeRepository: d.repo,
+    url: `${SITE}/work/${d.slug}/`,
+    author: { '@type': 'Person', '@id': `${SITE}/#person`, name: OWNER },
+    dateModified: d.lastPush.toISOString().slice(0, 10),
+  },
+];
+---
+
+<Dossier title={`${d.title}: case study by ${OWNER}`} description={d.oneLiner} ogType="article" jsonLd={jsonLd} tocLabel={`${d.title} case study`} footerCta={false}>
+  <Fragment slot="toc">
+    <div>
+      <a class="toc-name" href={href('/')}>{OWNER}</a>
+      <p class="toc-role">{ROLE}</p>
+    </div>
+    <div>
+      <p class="toc-project">{d.title}</p>
+      <StatusPill status={d.status} label={d.statusLabel} />
+    </div>
+    <ul class="toc-list">
+      {
+        sections.map((h) => (
+          <li>
+            <a href={`#${h.slug}`}>
+              <span>{h.text}</span>
+            </a>
+          </li>
+        ))
+      }
+      <li><a href="#links"><span>Links</span></a></li>
+    </ul>
+    <ul class="toc-list">
+      <li><a href={href('/#work')}><span>All selected work</span></a></li>
+    </ul>
+    <div class="toc-cta">
+      <UpworkButton size="sm" />
+      <p>$90/h, contracted on Upwork</p>
+    </div>
+  </Fragment>
+
+  <article aria-labelledby="case-title">
+    <header class="case-head">
+      <p class="case-back"><a class="link-quiet" href={href('/#work')}>All selected work</a></p>
+      <h1 id="case-title" class="t-h1">{d.title}</h1>
+      <p class="t-lead case-lead">{d.oneLiner}</p>
+      <dl class="facts panel case-facts">
+        <dt>Status</dt>
+        <dd><StatusPill status={d.status} label={d.statusLabel} /></dd>
+        <dt>Stack</dt>
+        <dd>{d.stack.join(', ')}</dd>
+        <dt>Last commit</dt>
+        <dd>{formatDate(d.lastPush)}</dd>
+        {
+          (d.demo || d.video) && (
+            <>
+              <dt>Try it</dt>
+              <dd class="facts-links">
+                {d.demo && <a href={d.demo}>{d.demoLabel ?? 'Open the demo'}</a>}
+                {d.video && <a href={d.video}>{d.videoLabel ?? 'Watch the video'}</a>}
+              </dd>
+            </>
+          )
+        }
+        <dt>Sources</dt>
+        <dd>
+          Each <span class="src" aria-hidden="true">README L7</span> tag opens the README line that makes the claim, at commit <a href={readmeAtCommit}><code>{shortSha}</code></a>.
+        </dd>
+      </dl>
+    </header>
+
+    <div class="prose-case case-body">
+      <Content components={{ Src, Flow, Mark, LastCommit }} />
+    </div>
+
+    <section id="links" class="case-links" aria-labelledby="links-title">
+      <h2 id="links-title" class="t-h2">Links</h2>
+      <ul>
+        <li><a class="link-quiet" href={d.repo}>View the repo on GitHub</a></li>
+        {d.demo && <li><a class="link-quiet" href={d.demo}>{d.demoLabel ?? 'Open the demo'}</a></li>}
+        {d.video && <li><a class="link-quiet" href={d.video}>{d.videoLabel ?? 'Watch the video'}</a></li>}
+        <li><a class="link-quiet" href={readmeAtCommit}>README at commit {shortSha}, as read for this page</a></li>
+      </ul>
+      <p class="case-next">Next case study: <a href={href(`/work/${next.data.slug}/`)}>{next.data.title}</a></p>
+      <div class="case-cta panel">
+        <div>
+          <p class="t-h3">Want this pattern in your stack?</p>
+          <p class="case-cta-note">Contracted and paid on Upwork, at $90/h.</p>
+        </div>
+        <UpworkButton />
+      </div>
+    </section>
+  </article>
+</Dossier>

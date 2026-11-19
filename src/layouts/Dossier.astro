@@ -1,0 +1,41 @@
+---
+/**
+ * "Dossier" layout (BRIEF §3.6): on desktop a sticky contents column (3/12) beside the
+ * document (8/12); below 1024 px a compact sticky masthead with the Upwork button.
+ */
+import Base from './Base.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import UpworkButton from '../components/UpworkButton.astro';
+import { href, OWNER } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  ogType?: 'website' | 'article';
+  jsonLd?: Record<string, unknown>[];
+  /** Accessible name of the contents navigation. */
+  tocLabel: string;
+  /** Show the footer's closing call to action. */
+  footerCta?: boolean;
+}
+const { tocLabel, footerCta = true, ...base } = Astro.props;
+---
+
+<Base {...base}>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="masthead">
+    <a class="masthead-name" href={href('/')}>{OWNER}</a>
+    <UpworkButton size="sm" />
+  </header>
+  <div class="dossier">
+    <nav class="toc" aria-label={tocLabel}>
+      <slot name="toc" />
+    </nav>
+    <div class="content">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+      <SiteFooter cta={footerCta} />
+    </div>
+  </div>
+</Base>

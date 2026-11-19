@@ -1,0 +1,21 @@
+---
+/** Paris local time. Rendered at build as a placeholder, then kept current in the browser. */
+const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+const now = fmt.format(new Date());
+---
+
+<time datetime={now} data-paris-time>{now}</time>
+
+<script>
+  const el = document.querySelector<HTMLTimeElement>('[data-paris-time]');
+  if (el) {
+    const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const tick = () => {
+      const t = fmt.format(new Date());
+      el.textContent = t;
+      el.dateTime = t;
+      setTimeout(tick, 60000 - (Date.now() % 60000) + 50);
+    };
+    tick();
+  }
+</script>

@@ -1,0 +1,30 @@
+---
+import UpworkButton from './UpworkButton.astro';
+import { GITHUB_URL, HUGGINGFACE_URL, OWNER } from '../consts';
+
+interface Props {
+  /** The closing call to action. Off on case studies, which end with their own. */
+  cta?: boolean;
+}
+const { cta = true } = Astro.props;
+---
+
+<footer class="site-footer">
+  {
+    cta && (
+      <>
+        <p class="t-h3">Want this in your systems?</p>
+        <p class="mt-2 text-ink-2 measure">Contracts, milestones and payment all go through Upwork, at $90/h.</p>
+        <div class="mt-5">
+          <UpworkButton />
+        </div>
+      </>
+    )
+  }
+  <ul class:list={['flex flex-wrap gap-x-6 gap-y-1', cta && 'mt-8']}>
+    <li><a class="link-quiet" href={GITHUB_URL} rel="me noopener">GitHub</a></li>
+    <li><a class="link-quiet" href={HUGGINGFACE_URL} rel="me noopener">Hugging&nbsp;Face</a></li>
+  </ul>
+  <p class="mt-6 t-small text-ink-2">No trackers. No cookies. Static HTML.</p>
+  <p class="mt-1 t-small text-ink-2">© 2026 {OWNER}</p>
+</footer>

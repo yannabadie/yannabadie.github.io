@@ -1,0 +1,58 @@
+---
+import '../styles/global.css';
+import archivoUrl from '@fontsource-variable/archivo/files/archivo-latin-standard-normal.woff2?url';
+import monoUrl from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url';
+import { canonical, OWNER, SITE } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  ogType?: 'website' | 'article';
+  jsonLd?: Record<string, unknown>[];
+}
+
+const { title, description, ogType = 'website', jsonLd = [] } = Astro.props;
+const canonicalUrl = canonical(Astro.url.pathname);
+const ogImage = `${SITE}/og.png`;
+
+// Latin subset only (same range as @fontsource's latin files).
+const latin =
+  'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
+const fontFaces =
+  `@font-face{font-family:"Archivo Variable";font-style:normal;font-display:swap;font-weight:100 900;font-stretch:62% 125%;src:url(${archivoUrl}) format("woff2");unicode-range:${latin}}` +
+  `@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:400;src:url(${monoUrl}) format("woff2");unicode-range:${latin}}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={OWNER} />
+    <meta name="theme-color" content="#F4F6F8" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
+    <link rel="sitemap" href={`${import.meta.env.BASE_URL}sitemap-index.xml`} />
+    <link rel="preload" href={archivoUrl} as="font" type="font/woff2" crossorigin />
+    <style is:inline set:html={fontFaces} />
+    <noscript><style is:inline>.gate-btn,[data-note]{display:none!important}.gate-nojs{display:inline!important}.gate [data-decision],.gate [data-hash],.paris-now{display:none!important}</style></noscript>
+
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={OWNER} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AI agents in real systems, safely. Yann Abadie, Senior AI & Cloud Security Architect." />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {jsonLd.map((data) => <script type="application/ld+json" is:inline set:html={JSON.stringify(data)} />)}
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

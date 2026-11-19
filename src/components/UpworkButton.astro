@@ -1,0 +1,10 @@
+---
+import { UPWORK_URL } from '../consts';
+interface Props {
+  size?: 'md' | 'sm';
+  class?: string;
+}
+const { size = 'md', class: extra } = Astro.props;
+---
+
+<a class:list={['btn', size === 'sm' && 'btn-sm', extra]} href={UPWORK_URL} rel="noopener">Hire me on Upwork</a>

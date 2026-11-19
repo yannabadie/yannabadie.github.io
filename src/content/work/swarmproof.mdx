@@ -1,0 +1,66 @@
+---
+title: SwarmProof
+slug: swarmproof
+oneLiner: A verified-remediation CLI. Claude and Codex propose a fix, your own test suite gives the verdict, and a hashed Evidence Pack records the result.
+status: alpha
+statusLabel: Alpha
+year: 2026
+stack: [Python 3.11 standard library, Claude CLI, Codex CLI, GitHub Actions]
+repo: https://github.com/yannabadie/swarmproof
+readmeSha: 8e2f1137dd2535f0fd58dda902c630c588a945da
+order: 2
+lastPush: 2026-11-05
+summary:
+  before: "Claude and Codex propose a fix, "
+  mark: "your own test suite gives the verdict"
+  after: ", and a hashed Evidence Pack records it."
+  line: "9-12"
+---
+
+## The problem
+
+An agent that says "fixed" proves nothing. <Src l="14" /> Before you merge an agent's change you need 3 things: proof that it passes your tests, proof that nobody edited the tests to get there, and a record you can check later without calling a model again.
+
+## What I built
+
+The README is in French; this page renders it in English.
+
+- `swarmproof fix` runs Claude and Codex on a throwaway copy; the source repository is never modified. <Src l="47-50" />
+- It ignores the engine's own "completed" status and computes success from each agent's result. <Src l="57-58" />
+- It restores the test files from the clean copy before judging, so <Mark l="60-61">a fix cannot pass by editing the tests</Mark>.
+- Your test command gives the verdict: `PASS`, `FAIL`, or `INCONCLUSIVE` when infrastructure fails. <Src l="62" />
+- An Evidence Pack with a SHA-256 manifest that `swarmproof verify` checks offline. <Src l="64-67" />
+
+## System as built
+
+<Flow
+  steps={[
+    { t: 'Throwaway copy of the repository', s: 'Throwaway copy', d: 'The source repository is never modified.', l: '50' },
+    { t: 'The swarm proposes fixes', s: 'Swarm proposes', d: 'Codex and Claude CLIs, with bounded retries and a cap on calls.', l: '53-56' },
+    { t: 'Engine status ignored', s: 'Status ignored', d: '`engine_ok` is computed from each agent, even when the engine says COMPLETED.', l: '57-58' },
+    { t: 'Tests restored', s: 'Tests restored', d: 'From the clean copy, before any verdict.', l: '60-61' },
+    { t: 'Your test command runs', s: 'Your tests run', out: ['PASS', 'FAIL', 'INCONCLUSIVE'], d: '`PASS`, `FAIL` or `INCONCLUSIVE`; partial proposals are refused.', l: '61-63' },
+    { t: 'Evidence Pack written', s: 'Evidence Pack', d: 'Report, trace, diff, source and evaluated trees, `manifest.sha256`.', l: '64-65' },
+    { t: '`swarmproof verify`', s: 'Offline verify', d: 'Checks every hash and can replay the tests offline, with no model call.', l: '66-67' },
+  ]}
+/>
+
+## How it is verified
+
+- 97 tests in a standard-library suite that runs in about 1.4 s, per README. <Src l="248" />
+- GitHub Actions [CI](https://github.com/yannabadie/swarmproof/actions/workflows/ci.yml): the latest run on `main` passed on 5 November 2026.
+- Demo pack v2 is a real multi-file run: PASS on 4 tests, a fix applied atomically to 2 files, and `shasum -a 256 -c manifest.sha256` OK on 30 files, per README. <Src l="125-144" />
+- An independent red team tested v0.1. 3 critical vulnerabilities were fixed in v0.2, with regression tests in `tests/test_security.py`. <Src l="198-199" />
+
+## What this means for your project
+
+- You can accept an agent's fix on evidence: your tests, restored before judging, decide. That is an **Agent or MCP build**.
+- Reviewers get a pack they can verify offline, without model calls and without trusting the agent.
+- An **Architecture review** can check whether your tests are strong enough to act as the judge.
+
+## Status & limits
+
+- Alpha, v0.2.1, released 5 November 2026. <Src l="23" />
+- The pack proves internal consistency, not origin. It is not signed yet, so it does not prove who produced it. <Src l="17-21" />
+- One run on one repository: a feasibility proof, not a statistical study. It does not show that a swarm beats a single agent. <Src l="28-29" /> <Src l="230" />
+- It needs executable tests. If your tests are weak, the verdict is weak. <Src l="226" />

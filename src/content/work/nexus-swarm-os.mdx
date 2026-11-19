@@ -1,0 +1,66 @@
+---
+title: nexus-swarm-os
+slug: nexus-swarm-os
+oneLiner: A multi-model orchestration platform. 7 native provider drivers, a second model that checks each tool result, and security layers that are on by default.
+status: working
+statusLabel: Working
+year: 2026
+stack: [Python 3.11+, 7 provider SDK drivers, Docker, FastAPI, MCP]
+repo: https://github.com/yannabadie/nexus-swarm-os
+readmeSha: 20b9c6c261653229acf15a3e49e7c3a82d23322c
+order: 4
+lastPush: 2026-03-17
+summary:
+  before: "Multi-model orchestration in which "
+  mark: "the opposite model checks each tool result"
+  after: " before the pipeline moves on."
+  line: "19"
+---
+
+## The problem
+
+A model checking its own work misses its own mistakes, and an orchestrator can report success on a step that failed. <Src l="19" /> Teams that use several providers also need failover, one place for access control, and a log of every action.
+
+## What I built
+
+The README calls the platform NEXUS. <Src l="1" />
+
+- 7 native SDK drivers (Anthropic, Google, OpenAI, DeepSeek, Kimi, MiniMax, Ollama), each with its own circuit breaker and failover, and no wrapper library. <Src l="17" />
+- Cross-model verification: <Mark l="19">the opposite model validates each tool execution</Mark> before the pipeline advances.
+- Security layers on by default: InputGuard, OutputGuard, PathGuardian, ShadowRedTeam, RBAC and AuditLogger. <Src l="21" />
+- Tool execution in a Docker sandbox by default; running on the host is opt-in. <Src l="286" />
+- A research CLI that writes a reproducible evidence pack with a SHA-256 manifest. <Src l="76" />
+
+## System as built
+
+<Flow
+  steps={[
+    { t: 'Request in', s: 'Request', d: 'From the REPL, the MCP server, the REST API or the CLI.', l: '28-35' },
+    { t: 'FSM orchestrator', s: 'FSM', d: '12 states route the task.', l: '32' },
+    { t: 'HiveMind or Swarm Engine', s: 'HiveMind or Swarm', d: '7 phases, or 6 collaboration modes.', l: '64-66' },
+    { t: 'Driver layer', s: 'Driver', d: 'The provider call, with failover and a circuit breaker.', l: '50-54' },
+    { t: 'Tool runs in the sandbox', s: 'Sandbox', d: 'Docker by default; the host is opt-in.', l: '286' },
+    { t: 'The opposite model validates', s: 'Second model', d: 'If Claude issued the command, Gemini reviews the result before the pipeline advances.', l: '19' },
+    { t: 'Security layer', s: 'Security layer', d: 'InputGuard and OutputGuard filter what goes in and out; AuditLogger records the action.', l: '274-281' },
+  ]}
+/>
+
+## How it is verified
+
+- A pytest suite under `tests/`. The README's coverage command fails below 60%. <Src l="329-332" />
+- Test counts are published per CI run in an `evidence-ledger` artifact, not hard-coded in the README. <Src l="341" />
+- ShadowRedTeam runs automated red-team tests of agent outputs. <Src l="279" />
+- The last fully green [CI run](https://github.com/yannabadie/nexus-swarm-os/actions) was on 17 March 2026.
+
+## What this means for your project
+
+- If you use more than one model provider, failover and a second-model check can live in the orchestration layer instead of in each prompt. That is an **Agent or MCP build**.
+- RBAC and an audit log come with the first release, not after the first incident.
+- An **Architecture review** can decide where a second-model check is worth its cost.
+
+## Status & limits
+
+- Working codebase, with low activity since March 2026. Last commit: <LastCommit />. No tagged release.
+- CI has not passed since then; later runs fail at lint and tests. Treat it as a reference implementation of these patterns, not a maintained product.
+- No hosted demo. The research CLI has a mock mode that needs no API keys. <Src l="86" />
+- SwarmProof reuses its swarm engine.

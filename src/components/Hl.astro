@@ -1,0 +1,13 @@
+---
+/** A highlighted claim. Every highlight is a link to its proof (BRIEF §3.3). */
+interface Props {
+  href: string;
+  /** Delay in ms for the one-time hero sweep; omit for a static mark. */
+  sweep?: number;
+  /** Extra context for screen readers, e.g. "Meta-YGN README line 7". */
+  proof: string;
+}
+const { href, sweep, proof } = Astro.props;
+---
+
+<a class:list={['hl', sweep !== undefined && 'hl-sweep']} href={href} style={sweep !== undefined ? `--d:${sweep}ms` : undefined}><slot /><span class="sr-only-x"> (proof: {proof})</span></a>

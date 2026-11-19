@@ -1,0 +1,374 @@
+---
+import { getCollection } from 'astro:content';
+import Dossier from '../layouts/Dossier.astro';
+import Gate from '../components/Gate.astro';
+import Hl from '../components/Hl.astro';
+import ParisTime from '../components/ParisTime.astro';
+import StatusPill from '../components/StatusPill.astro';
+import UpworkButton from '../components/UpworkButton.astro';
+import { GITHUB_URL, HUGGINGFACE_URL, OWNER, ROLE, SITE, UPWORK_URL, href } from '../consts';
+import { formatDate, readmeLine } from '../lib/sources';
+
+const projects = (await getCollection('work')).sort((a, b) => a.data.order - b.data.order);
+
+const META_YGN = 'https://github.com/yannabadie/Meta-YGN';
+const CONFIDANT = 'https://github.com/yannabadie/confidant';
+const proofApproves = readmeLine(META_YGN, 'ce4a5950919c90a2b66a5e2e70535d36a6bd6d59', '67-78');
+const proofTraceable = readmeLine(CONFIDANT, '2042c9b80a4108ccecf86e39d1b026b6b11a1dcb', '27-30');
+
+const alsoOnGitHub = [
+  { name: 'mnemo', text: 'ties a prepared decision to the facts behind it and refuses a stale export.' },
+  { name: 'mcp-session-check', text: 'checks MCP HTTP discovery and the session lifecycle without calling any tool.' },
+  { name: 'oida-code', text: 'gives diagnostic evidence for AI-written Python diffs.' },
+  { name: 'metascaffold', text: 'is a metacognition MCP server for Claude Code.' },
+];
+
+const engagements = [
+  {
+    id: 'review',
+    title: 'Architecture review',
+    shape: 'Paid consultation, fixed scope',
+    forWho: 'Your team wants an agent with access to code, databases or mail, and nobody can say yet what it could break.',
+    ships: [
+      'A map of every tool the agent can call and the credential behind it',
+      'A decision for each action: allow, block, or hold for a person',
+      'The changes that remove the most risk, in order',
+      'A written report your team keeps',
+    ],
+    starts: { before: 'Book the consultation on ', link: 'my Upwork profile', after: '.' },
+  },
+  {
+    id: 'build',
+    title: 'Agent or MCP build',
+    shape: 'Milestones on Upwork',
+    forWho: 'You need an agent or an MCP server working against your own systems, with approvals and logs from the first release.',
+    ships: [
+      'An agent or MCP server with least-privilege, revocable credentials',
+      'An approval step on every write action',
+      'An action log with hashes you can re-check',
+      'Tests in your CI and a runbook for the people who operate it',
+    ],
+    starts: { before: 'Invite me to a job on ', link: 'Upwork', after: '; we agree the milestones there.' },
+  },
+  {
+    id: 'm365',
+    title: 'Microsoft 365 and Entra security review',
+    shape: 'Fixed scope on Upwork',
+    forWho: 'An AI assistant or connector needs Microsoft 365 data, and you want its access limited to what it needs.',
+    ships: [
+      'Conditional Access policies checked for the identities your connectors use',
+      'App registrations, permissions and consent compared with what each app needs',
+      'Graph mail access scoped with Exchange Online RBAC to the mailboxes an app needs',
+      'Findings ranked by impact, each with its fix',
+    ],
+    starts: { before: 'Start with the consultation, or invite me to a fixed-scope job on ', link: 'Upwork', after: '.' },
+  },
+];
+
+const principles = [
+  {
+    title: 'Least privilege',
+    text: 'We start with access. The agent gets the narrowest credential that does the job: read-only first, one mailbox, one schema.',
+  },
+  {
+    title: 'Human approval on writes',
+    text: 'Then the gate. Anything that sends, deletes, pays or deploys waits for a named person, and the agent cannot approve itself.',
+  },
+  {
+    title: 'Your tests decide',
+    text: 'An agent saying “fixed” proves nothing. Your test suite, restored before each run, gives the verdict.',
+  },
+  {
+    title: 'Evidence you can re-check',
+    text: 'Every run leaves a log with SHA-256 hashes, so you can verify what happened without taking my word for it.',
+  },
+];
+
+const faq = [
+  {
+    q: 'Why Upwork only?',
+    a: 'One place for the contract, milestones, invoices and payment. Upwork holds fixed-price milestone funds in escrow while you review the work, and both of us get its dispute process. Send me a message there first.',
+  },
+  {
+    q: 'Do you work with local or on-prem models?',
+    a: 'Yes. I designed an offline, on-premises AI server for sensitive data. nexus-swarm-os has an Ollama driver for local models, and Meta-YGN runs on your machine with no network calls.',
+  },
+  {
+    q: 'How do you handle access to our data?',
+    a: 'I ask for the narrowest access that does the job, in accounts you own and can revoke. Write actions go through an approval step, logs stay in your systems, and client work stays confidential.',
+  },
+  {
+    q: 'Can you start small?',
+    a: 'Yes. The paid consultation on Upwork is a fixed-scope first step: one system, one agent, one written result. If it is useful, we plan milestones from there.',
+  },
+  {
+    q: 'What about time zones?',
+    a: 'I work evenings and weekends, Paris time. For most of the year, 18:00 to 23:00 Paris time is the working afternoon on the US East Coast and the morning on the West Coast.',
+  },
+];
+
+const description =
+  'Senior AI & Cloud Security Architect. I build AI agents and MCP servers where a person approves what matters and every action is traceable. Hire me on Upwork, $90/h.';
+
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': `${SITE}/#person`,
+  name: OWNER,
+  jobTitle: ROLE,
+  url: `${SITE}/`,
+  sameAs: [GITHUB_URL, HUGGINGFACE_URL, UPWORK_URL],
+  knowsLanguage: ['fr', 'en'],
+  knowsAbout: ['AI agents', 'Model Context Protocol', 'Microsoft Azure', 'Microsoft 365', 'Microsoft Entra ID', 'Zero Trust'],
+};
+const service = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  '@id': `${SITE}/#service`,
+  name: `${OWNER}, AI and cloud security architecture`,
+  url: `${SITE}/`,
+  description,
+  provider: { '@id': `${SITE}/#person` },
+  areaServed: 'Worldwide',
+  priceRange: '$90 per hour',
+  serviceType: ['Architecture review', 'AI agent and MCP server build', 'Microsoft 365 and Entra security review'],
+};
+---
+
+<Dossier title={`${OWNER}: AI agents in real systems, safely`} description={description} jsonLd={[person, service]} tocLabel="On this page">
+  <Fragment slot="toc">
+    <div>
+      <a class="toc-name" href="#top">{OWNER}</a>
+      <p class="toc-role">{ROLE}</p>
+    </div>
+    <ul class="toc-list">
+      <li><a href="#gate"><span>The approval gate</span></a></li>
+      <li>
+        <a href="#work"><span>Selected work</span></a>
+        <ul class="toc-sub">
+          {
+            projects.map((p) => (
+              <li>
+                <a href={href(`/work/${p.data.slug}/`)}>
+                  <span>{p.data.title}</span>
+                  <StatusPill status={p.data.status} label={p.data.statusLabel} />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </li>
+      <li><a href="#engage"><span>Ways to engage</span></a></li>
+      <li><a href="#how"><span>How I work</span></a></li>
+      <li><a href="#about"><span>About</span></a></li>
+      <li><a href="#faq"><span>Questions</span></a></li>
+    </ul>
+    <div class="toc-cta">
+      <UpworkButton size="sm" />
+      <p>$90/h, contracted on Upwork</p>
+    </div>
+  </Fragment>
+
+  <section id="top" class="hero" aria-labelledby="hero-title">
+    <h1 id="hero-title" class="t-display">AI agents in real systems, safely.</h1>
+    <p class="t-lead hero-lead">
+      The agent does the work, <Hl href={proofApproves} sweep={40} proof="Meta-YGN README, a risky command creates a checkpoint and then asks">a person approves what matters</Hl>, and <Hl href={proofTraceable} sweep={310} proof="Confidant README, a receipt with a SHA-256 for every outbound call">every action is traceable</Hl>. I build that layer for agents and MCP servers on Azure and Microsoft&nbsp;365.
+    </p>
+    <div class="hero-actions">
+      <UpworkButton />
+      <a class="link-quiet" href="#work">See the work</a>
+    </div>
+    <p class="hero-note">Highlighted phrases link to the public README line that proves them.</p>
+    <dl class="facts panel hero-facts">
+      <dt>Role</dt>
+      <dd>{ROLE}</dd>
+      <dt>Based</dt>
+      <dd>France</dd>
+      <dt>Hours</dt>
+      <dd><span class="paris-now">It is <ParisTime /> in Paris. </span>I work evenings and weekends, Paris time.</dd>
+      <dt>Rate</dt>
+      <dd>$90/h, contracted and paid on Upwork</dd>
+      <dt>Works with</dt>
+      <dd>AI agents, MCP servers, Azure, Microsoft&nbsp;365, Entra&nbsp;ID</dd>
+    </dl>
+  </section>
+
+  <div class="gate-wrap">
+    <Gate />
+  </div>
+
+  <section id="work" class="section" aria-labelledby="work-title">
+    <div class="section-head">
+      <h2 id="work-title" class="t-h2">Selected work</h2>
+      <p>5 public repositories. Highlighted claims link to the README line that makes them, every number comes from those READMEs, and each status says how far the project got.</p>
+    </div>
+    <ol class="work-list">
+      {
+        projects.map((p) => {
+          const d = p.data;
+          const caseUrl = href(`/work/${d.slug}/`);
+          return (
+            <li class="work-item">
+              <div class="work-title">
+                <h3 class="t-h3">
+                  <a href={caseUrl}>{d.title}</a>
+                </h3>
+                <StatusPill status={d.status} label={d.statusLabel} />
+              </div>
+              <p class="work-summary">
+                {d.summary.before}
+                {d.summary.mark && d.summary.line && (
+                  <Hl href={readmeLine(d.repo, d.readmeSha, d.summary.line)} proof={`${d.title} README, line ${d.summary.line}`}>
+                    {d.summary.mark}
+                  </Hl>
+                )}
+                {d.summary.after}
+              </p>
+              <p class="work-stack">
+                {d.stack.join(', ')}. Last commit {formatDate(d.lastPush)}.
+              </p>
+              <div class="work-links">
+                <a class="link-quiet" href={caseUrl}>
+                  Read the case study<span class="sr-only-x"> on {d.title}</span>
+                </a>
+                <a class="link-quiet" href={d.repo}>
+                  View the repo<span class="sr-only-x"> of {d.title} on GitHub</span>
+                </a>
+                {d.demo && d.demoOnHome && (
+                  <a class="link-quiet" href={d.demo}>
+                    Try the demo<span class="sr-only-x"> of {d.title}</span>
+                  </a>
+                )}
+                {d.video && d.demoOnHome && (
+                  <a class="link-quiet" href={d.video}>
+                    Watch the video<span class="sr-only-x"> about {d.title}</span>
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })
+      }
+    </ol>
+    <div class="also">
+      <p class="also-title">Also on GitHub</p>
+      <ul class="also-list">
+        {
+          alsoOnGitHub.map((r) => (
+            <li>
+              <a href={`${GITHUB_URL}/${r.name}`}>{r.name}</a> {r.text}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section id="engage" class="section" aria-labelledby="engage-title">
+    <div class="section-head">
+      <h2 id="engage-title" class="t-h2">Ways to engage</h2>
+      <p>All 3 run on Upwork: hourly at $90/h, or a fixed price agreed on Upwork before work starts.</p>
+    </div>
+    <div class="engage">
+      {
+        engagements.map((e) => (
+          <article class="engage-card panel" aria-labelledby={`engage-${e.id}`}>
+            <div>
+              <h3 id={`engage-${e.id}`} class="t-h3">
+                {e.title}
+              </h3>
+              <p>{e.shape}</p>
+              <p class="engage-for">{e.forWho}</p>
+            </div>
+            <div>
+              <p class="engage-ships-title">What ships</p>
+              <ul class="ticks">
+                {e.ships.map((s) => (
+                  <li>{s}</li>
+                ))}
+              </ul>
+              <p class="engage-start">
+                <strong class="font-semibold">How it starts:</strong> {e.starts.before}
+                <a href={UPWORK_URL} rel="noopener">
+                  {e.starts.link}
+                </a>
+                {e.starts.after}
+              </p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+    <div class="mt-8"><UpworkButton /></div>
+  </section>
+
+  <section id="how" class="section" aria-labelledby="how-title">
+    <div class="section-head">
+      <h2 id="how-title" class="t-h2">How I work</h2>
+      <p>A first engagement runs in this order.</p>
+    </div>
+    <ol class="how-grid">
+      {
+        principles.map((p) => (
+          <li>
+            <h3 class="how-title">{p.title}</h3>
+            <p class="how-text">{p.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section id="about" class="section" aria-labelledby="about-title">
+    <div class="section-head">
+      <h2 id="about-title" class="t-h2">About</h2>
+      <p>About 10 years in IT. Client work stays confidential. Everything on this site is public and checkable.</p>
+    </div>
+    <div class="about-grid">
+      <div>
+        <h3 class="t-h3">Career</h3>
+        <dl class="career">
+          <dt>Now</dt>
+          <dd>Solutions Architect in an industrial manufacturing group: integration projects and the IT department’s AI program.</dd>
+          <dt>Before</dt>
+          <dd>Head of Cloud Architecture &amp; Security.</dd>
+          <dt>Earlier</dt>
+          <dd>Microsoft Cloud &amp; Security Architect: Azure, Microsoft&nbsp;365, Entra&nbsp;ID, Intune, Defender, Zero Trust.</dd>
+        </dl>
+      </div>
+      <div>
+        <h3 class="t-h3">Recent work, without names</h3>
+        <ul class="ticks mt-4">
+          <li>Built an MCP server that gives an AI assistant read-only access for code analysis.</li>
+          <li>Wrote an AI-agent governance framework aligned with OWASP guidance on agentic AI.</li>
+          <li>Designed an offline, on-premises AI server for sensitive data.</li>
+          <li>Secured Microsoft&nbsp;365 access for AI connectors: Conditional Access, and Exchange Online RBAC that limits Graph mail access to one mailbox.</li>
+        </ul>
+      </div>
+    </div>
+    <dl class="facts panel about-facts">
+      <dt>Languages</dt>
+      <dd>French (native), English (fluent)</dd>
+      <dt>Hours</dt>
+      <dd>Evenings and weekends, Paris time</dd>
+      <dt>Also work with</dt>
+      <dd>Terraform, Sentinel and KQL, Kubernetes and Rancher, Dynamics&nbsp;365, MIM, LangGraph</dd>
+    </dl>
+  </section>
+
+  <section id="faq" class="section" aria-labelledby="faq-title">
+    <div class="section-head">
+      <h2 id="faq-title" class="t-h2">Questions</h2>
+    </div>
+    <div class="faq">
+      {
+        faq.map((f) => (
+          <div class="faq-item">
+            <h3 class="faq-q">{f.q}</h3>
+            <p class="faq-a measure">{f.a}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</Dossier>

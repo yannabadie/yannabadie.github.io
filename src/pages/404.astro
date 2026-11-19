@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+import Dossier from '../layouts/Dossier.astro';
+import StatusPill from '../components/StatusPill.astro';
+import UpworkButton from '../components/UpworkButton.astro';
+import { OWNER, ROLE, href } from '../consts';
+
+const projects = (await getCollection('work')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<Dossier title={`Page not found: ${OWNER}`} description="This address is not part of the site. The home page and 5 case studies are." tocLabel="Site contents">
+  <Fragment slot="toc">
+    <div>
+      <a class="toc-name" href={href('/')}>{OWNER}</a>
+      <p class="toc-role">{ROLE}</p>
+    </div>
+    <div class="toc-cta">
+      <UpworkButton size="sm" />
+      <p>$90/h, contracted on Upwork</p>
+    </div>
+  </Fragment>
+
+  <section class="case-head" aria-labelledby="nf-title">
+    <h1 id="nf-title" class="t-h1">This page is not in the document.</h1>
+    <p class="t-lead case-lead">The link may be old or mistyped. Everything on this site is on the home page or in one of 5 case studies.</p>
+    <ul class="work-list nf-list">
+      {
+        projects.map((p) => (
+          <li class="work-item">
+            <div class="work-title">
+              <h2 class="t-h3">
+                <a href={href(`/work/${p.data.slug}/`)}>{p.data.title}</a>
+              </h2>
+              <StatusPill status={p.data.status} label={p.data.statusLabel} />
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="hero-actions">
+      <a class="btn" href={href('/')}>Go to the home page</a>
+      <a class="link-quiet" href={href('/#gate')}>Try the approval gate</a>
+    </div>
+  </section>
+</Dossier>

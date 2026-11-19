@@ -1,0 +1,67 @@
+---
+title: Factur-X France 2027
+slug: facturx
+oneLiner: A zero-dependency Python validator for French e-invoices (Factur-X, EN 16931). It ships as a CLI, a library and a reusable GitHub Action, with a browser-only audit page on the FacturKit site.
+status: working
+statusLabel: Released
+year: 2026
+stack: [Python standard library, GitHub Actions, PDF/A-3, EN 16931]
+repo: https://github.com/yannabadie/facturx-france-2027
+readmeSha: d72402476f60fc1849a2f61c143426a15eb3e559
+demo: https://yannabadie.github.io/facturkit-2027/audit-facture-gratuit.html
+demoLabel: Browser audit on the FacturKit site
+order: 5
+lastPush: 2026-11-17
+summary:
+  before: "A zero-dependency Python validator for French e-invoices, shipped as a CLI, a library and a GitHub Action."
+  after: ""
+---
+
+## The problem
+
+France's e-invoicing reform makes structured invoices such as Factur-X mandatory. Per README, every company must be able to receive them from 1 September 2026, and small companies must issue them from 1 September 2027. <Src l="42-44" /> A plain office PDF no longer qualifies. <Src l="228" /> Finance teams need to catch a bad file before a platform rejects it.
+
+## What I built
+
+The README is in French, with an English summary. <Src l="240" />
+
+- A single-file validator, standard library only: no pip install, no C compiler. <Src l="9" /> <Src l="68" />
+- Extraction of `factur-x.xml` from hybrid PDF/A-3 invoices, with checks on `/AF` and XMP metadata. <Src l="11" />
+- Validation of CII XML against the Factur-X 1.0.07 / EN 16931 profiles, MINIMUM to EXTENDED. <Src l="12" />
+- An audit of <Mark l="13">the 4 new mandatory French invoice mentions</Mark>, including the buyer's SIREN checked with Luhn.
+- A reusable GitHub Action that annotates failing files in pull requests. <Src l="167" />
+- A browser-only audit page on the FacturKit site; no data is sent to a server. <Src l="16" />
+
+## System as built
+
+<Flow
+  steps={[
+    { t: 'Invoice in', s: 'Invoice', d: 'A PDF/A-3 file, a CII XML file, or a whole folder.', l: '86-94' },
+    { t: 'Streams decompressed', s: 'Decompress', d: '`/FlateDecode` and `/ObjStm`; the XML is pulled from `/EmbeddedFiles`.', l: '194' },
+    { t: 'PDF/A-3 checks', s: 'PDF/A-3', d: 'The `/AF` entry, XMP metadata and conformance level.', l: '195-196' },
+    { t: 'CII root and profile', s: 'CII profile', d: 'Namespace and profile URN.', l: '197-198' },
+    { t: 'Header, SIREN and totals', s: 'Totals', d: 'Luhn checks and strict `Decimal` arithmetic.', l: '199-201' },
+    { t: 'The 4 mentions for 2026–2027', s: '4 mentions', d: 'Buyer SIREN, operation category, delivery address, VAT regime.', l: '202-205' },
+    { t: 'Report', s: 'Report', d: 'Terminal, JSON or pull-request annotations; exit code 1 if an invoice fails.', l: '93-97' },
+  ]}
+/>
+
+## How it is verified
+
+- GitHub Actions [CI](https://github.com/yannabadie/facturx-france-2027/actions/workflows/ci.yml): the latest run on `main` passed on 17 November 2026.
+- Release v1.0.0, used by the Action as `yannabadie/facturx-france-2027@v1.0.0`. <Src l="4" /> <Src l="181" />
+- Unit tests: `python3 test_validator.py -v`. <Src l="235" />
+- 14 checks across PDF/A-3, EN 16931, accounting and the 2027 mentions, each listed in the README. <Src l="190-207" />
+- Sample PDF/A-3 and XML invoices ship in the repository. <Src l="77" />
+
+## What this means for your project
+
+- Compliance as code: a CI gate fails the build before a bad invoice reaches a platform. When an agent prepares invoices, that is part of an **Agent or MCP build**.
+- With zero dependencies it runs where installs are locked down, such as a CI runner or an Alpine container. <Src l="68" />
+- Exit codes and JSON output plug into an ERP job or a webhook. <Src l="93-97" />
+
+## Status & limits
+
+- Working. v1.0.0 was released on 14 November 2026; last commit <LastCommit />.
+- This repository covers audit and verification only. It does not generate invoices. <Src l="213" />
+- It runs the 14 checks it lists and nothing more. It is a tool, not a certification.

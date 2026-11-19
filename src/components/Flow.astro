@@ -1,0 +1,70 @@
+---
+/**
+ * "System as built" (BRIEF §5): a flow map (boxes and arrows, the system's shape at a glance)
+ * above the numbered steps with their README sources. The order is the point, so numbers carry meaning.
+ * The map repeats the steps visually and is hidden from assistive technology; the list is the content.
+ */
+import Src from './Src.astro';
+
+interface Step {
+  /** What happens at this step. */
+  t: string;
+  /** Short label for the flow map (2–3 words). */
+  s: string;
+  /** Detail; text inside `backticks` is set in mono (machine text). */
+  d?: string;
+  /** README line(s) that describe this step. */
+  l?: string;
+  /** The step only runs in some cases (drawn dashed). */
+  opt?: boolean;
+  /** Possible outcomes of a final step, e.g. the verdicts. */
+  out?: string[];
+}
+interface Props {
+  steps: Step[];
+}
+
+const { steps } = Astro.props;
+if (steps.length < 4 || steps.length > 7) throw new Error(`Flow: ${steps.length} steps (BRIEF §5 wants 4 to 7)`);
+
+const parts = (s: string) => s.split(/(`[^`]+`)/g).filter(Boolean);
+---
+
+<div class="flow-map" aria-hidden="true">
+  {
+    steps.map((step, i) => (
+      <span class="fm-step">
+        {i > 0 && (
+          <svg class:list={['fm-arrow', step.opt && 'fm-arrow-opt']} viewBox="0 0 22 10" width="22" height="10">
+            <path d="M1 5h17" />
+            <path d="M14 1.5 18.5 5 14 8.5" />
+          </svg>
+        )}
+        <span class:list={['fm-node', step.opt && 'fm-opt', step.out && 'fm-out']}>
+          <span class="fm-n">{i + 1}</span>
+          {step.s}
+          {step.out && <span class="fm-outs">{step.out.map((o) => <span class="fm-chip">{o}</span>)}</span>}
+        </span>
+      </span>
+    ))
+  }
+</div>
+
+<ol class="steps flow">
+  {
+    steps.map((step) => (
+      <li class:list={[step.opt && 'step-opt']}>
+        <p class="step-title">
+          {parts(step.t).map((p) => (p.startsWith('`') ? <code>{p.slice(1, -1)}</code> : p))}
+          {step.opt && <span class="step-flag">only when needed</span>}
+        </p>
+        {step.d && (
+          <p class="step-detail">
+            {parts(step.d).map((p) => (p.startsWith('`') ? <code>{p.slice(1, -1)}</code> : p))}
+            {step.l && <Src l={step.l} />}
+          </p>
+        )}
+      </li>
+    ))
+  }
+</ol>

@@ -1,0 +1,277 @@
+---
+/**
+ * The approval gate (BRIEF §3.4): an illustration of a typical run, not a recording.
+ * Without JavaScript the finished ledger is plain HTML. With JavaScript it replays when in view
+ * (or when focus enters it), the visitor approves or rejects the held call, and the browser hashes
+ * the exact log text with crypto.subtle (SHA-256). That text is shown on request so anyone can re-hash it.
+ */
+import { href } from '../consts';
+
+const entries = [
+  { time: '14:02:07', who: 'agent', cmd: 'read_file src/billing.py', verdict: 'allowed', note: 'read scope' },
+  { time: '14:02:08', who: 'agent', cmd: 'sql.query SELECT … LIMIT 50', verdict: 'allowed', note: 'read-only scope' },
+  { time: '14:02:10', who: 'agent', cmd: 'shell rm -rf ./data', verdict: 'blocked', note: 'risk 0.94, checkpoint created' },
+  { time: '14:02:11', who: 'agent', cmd: 'mail.send to=finance@example.com', verdict: 'held', note: 'waiting for a person' },
+];
+---
+
+<section id="gate" class="gate" aria-labelledby="gate-title" data-gate>
+  <h2 id="gate-title" class="t-h2" tabindex="-1">The approval gate</h2>
+  <p class="gate-intro">
+    An agent proposes tool calls. The gate allows reads inside the agent’s scope, blocks a destructive command after taking a
+    checkpoint, and holds any call that sends, pays or deletes until a person decides. The log ends with a hash of every line above it.
+  </p>
+
+  <p class="gate-label">Illustration: replays a typical run</p>
+  <div class="ledger-box">
+    <ol class="ledger" data-ledger translate="no">
+      {
+        entries.map((e) => (
+          <li class="entry" data-entry data-verdict={e.verdict}>
+            <span class="e-time" data-time>{e.time}</span>
+            <span class="e-who">{e.who}</span>
+            <code class="e-cmd" data-cmd>{e.cmd}</code>
+            <span class="e-out">
+              <span class="e-verdict">{e.verdict}</span> <span class="e-note">{e.note}</span>
+            </span>
+          </li>
+        ))
+      }
+      <li class="entry" data-decision data-verdict="pending" aria-live="polite">
+        <span class="e-time" data-time>--:--:--</span>
+        <span class="e-who">you</span>
+        <code class="e-cmd">mail.send to=finance@example.com</code>
+        <span class="e-out"><span class="e-verdict" data-verdict-text>pending</span> <span class="e-note" data-decision-note>your decision</span></span>
+      </li>
+      <li class="entry entry-hash" data-hash>
+        <span class="e-time" data-time>--:--:--</span>
+        <span class="e-who">log</span>
+        <code class="e-cmd" data-hash-text>sha256 of this log, written after your decision</code>
+      </li>
+    </ol>
+  </div>
+
+  <div class="gate-actions">
+    <button type="button" class="gate-btn gate-btn-approve" data-choice="approved" aria-disabled="true">Approve</button>
+    <button type="button" class="gate-btn gate-btn-reject" data-choice="rejected" aria-disabled="true">Reject</button>
+    <button type="button" class="gate-btn gate-btn-quiet" data-copy hidden>Copy the log</button>
+    <button type="button" class="gate-btn gate-btn-quiet" data-replay hidden>Run it again</button>
+    <span class="gate-note" data-note></span>
+    <span class="gate-note gate-nojs">Approve and Reject need JavaScript. The run above is complete.</span>
+  </div>
+  <details class="gate-text" data-text hidden>
+    <summary>Show the exact text that was hashed</summary>
+    <pre data-text-pre></pre>
+  </details>
+
+  <div class="gate-proof">
+    <p>I build this layer between your agents and your systems. Each part is proven in a public repository:</p>
+    <ul>
+      <li>Risk scoring and blocking before a command runs: <a href={href('/work/meta-ygn/')}>Meta-YGN</a>.</li>
+      <li>Your own test suite decides whether an agent’s fix passes: <a href={href('/work/swarmproof/')}>SwarmProof</a>.</li>
+      <li>A second model checks each tool result: <a href={href('/work/nexus-swarm-os/')}>nexus-swarm-os</a>.</li>
+    </ul>
+  </div>
+</section>
+
+<script>
+  type Verdict = 'approved' | 'rejected';
+
+  const root = document.querySelector<HTMLElement>('[data-gate]');
+  if (root) setup(root);
+
+  function setup(root: HTMLElement): void {
+    const one = <T extends Element>(sel: string, scope: ParentNode = root) => scope.querySelector<T>(sel) as T;
+    const entries = Array.from(root.querySelectorAll<HTMLElement>('[data-entry]'));
+    const decision = one<HTMLElement>('[data-decision]');
+    const hashLine = one<HTMLElement>('[data-hash]');
+    const ledger = one<HTMLElement>('[data-ledger]');
+    const title = one<HTMLElement>('#gate-title');
+    const choices = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-choice]'));
+    const copyBtn = one<HTMLButtonElement>('[data-copy]');
+    const replayBtn = one<HTMLButtonElement>('[data-replay]');
+    const note = one<HTMLElement>('[data-note]');
+    const textBox = one<HTMLDetailsElement>('[data-text]');
+    const textPre = one<HTMLElement>('[data-text-pre]');
+    const commands = entries.map((e) => one<HTMLElement>('[data-cmd]', e).textContent ?? '');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clock = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Paris',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    });
+    /** Seconds before "now" for each line when the run is shown at once. */
+    const backdate = [4, 3, 1, 0];
+    let timers: number[] = [];
+    /** Timestamp of each ledger line, kept monotonic. */
+    let stamps: number[] = [];
+    let run = 0;
+    let playing = false;
+    let started = false;
+    let log = '';
+
+    const wait = (ms: number) => new Promise<void>((done) => timers.push(window.setTimeout(done, ms)));
+    const clean = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    /** One ledger line as plain text: "time who command verdict (note)". This is what gets hashed. */
+    const lineText = (li: HTMLElement) =>
+      `${clean(one('[data-time]', li))} ${clean(one('.e-who', li))} ${clean(one('.e-cmd', li))} ${clean(one('.e-verdict', li))} (${clean(one('.e-note', li))})`;
+    const setTime = (li: HTMLElement, at: number) => {
+      one<HTMLElement>('[data-time]', li).textContent = clock.format(at);
+    };
+    const lock = (locked: boolean) => choices.forEach((b) => b.setAttribute('aria-disabled', String(locked)));
+
+    function reset(): void {
+      timers.forEach(clearTimeout);
+      timers = [];
+      stamps = [];
+      [...entries, decision, hashLine].forEach((li) => li.classList.remove('is-shown', 'is-typing'));
+      decision.dataset.verdict = 'pending';
+      one<HTMLElement>('[data-verdict-text]', decision).textContent = 'pending';
+      one<HTMLElement>('[data-decision-note]', decision).textContent = 'your decision';
+      one<HTMLElement>('[data-time]', decision).textContent = '--:--:--';
+      one<HTMLElement>('[data-time]', hashLine).textContent = '--:--:--';
+      one<HTMLElement>('[data-hash-text]', hashLine).textContent = 'sha256 of this log, written after your decision';
+      delete root.dataset.hash;
+      entries.forEach((li, i) => (one<HTMLElement>('[data-cmd]', li).textContent = commands[i] ?? ''));
+      choices.forEach((b) => (b.hidden = false));
+      lock(true);
+      copyBtn.hidden = true;
+      replayBtn.hidden = true;
+      textBox.hidden = true;
+      textBox.open = false;
+      textPre.textContent = '';
+      root.dataset.log = '';
+      log = '';
+    }
+
+    /** Show every line at once and unlock the decision. */
+    function finish(): void {
+      timers.forEach(clearTimeout);
+      timers = [];
+      run++;
+      playing = false;
+      const now = Date.now();
+      const anyShown = stamps.some(Boolean);
+      let prev = 0;
+      entries.forEach((li, i) => {
+        let at = stamps[i];
+        if (!at || li.classList.contains('is-typing')) at = anyShown ? now : now - (backdate[i] ?? 0) * 1000;
+        at = Math.max(at, prev);
+        prev = stamps[i] = at;
+        setTime(li, at);
+        one<HTMLElement>('[data-cmd]', li).textContent = commands[i] ?? '';
+        li.classList.remove('is-typing');
+        li.classList.add('is-shown');
+      });
+      decision.classList.add('is-shown');
+      hashLine.classList.add('is-shown');
+      lock(false);
+      note.textContent = 'The agent is waiting for you.';
+    }
+
+    async function play(animate: boolean): Promise<void> {
+      reset();
+      started = true;
+      root.dataset.state = 'armed';
+      if (!animate) return finish();
+      const id = ++run;
+      playing = true;
+      note.textContent = 'Replaying. Press Approve or Reject to skip ahead.';
+      for (const [i, li] of entries.entries()) {
+        stamps[i] = Date.now();
+        setTime(li, stamps[i]);
+        const cmd = one<HTMLElement>('[data-cmd]', li);
+        const full = commands[i] ?? '';
+        cmd.textContent = '';
+        li.classList.add('is-typing', 'is-shown');
+        for (let c = 1; c <= full.length; c++) {
+          cmd.textContent = full.slice(0, c);
+          await wait(14);
+          if (id !== run) return;
+        }
+        await wait(180);
+        if (id !== run) return;
+        li.classList.remove('is-typing');
+        await wait(360);
+        if (id !== run) return;
+      }
+      finish();
+    }
+
+    async function decide(verdict: Verdict): Promise<void> {
+      lock(true);
+      const at = Date.now();
+      decision.dataset.verdict = verdict;
+      one<HTMLElement>('[data-verdict-text]', decision).textContent = verdict;
+      one<HTMLElement>('[data-decision-note]', decision).textContent = 'in this browser';
+      setTime(decision, at);
+      setTime(hashLine, at);
+
+      log = [...entries, decision].map(lineText).join('\n') + '\n';
+      root.dataset.log = log;
+      textPre.textContent = log;
+      const out = one<HTMLElement>('[data-hash-text]', hashLine);
+      try {
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(log));
+        const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+        out.textContent = `sha256 ${hex}`;
+        root.dataset.hash = hex;
+        note.textContent = 'The hash covers the 5 lines above, computed in this browser.';
+      } catch {
+        out.textContent = 'sha256 unavailable: crypto.subtle needs HTTPS';
+        note.textContent = 'Your browser blocks the hash on this connection. Open the page over HTTPS to compute it.';
+      }
+      choices.forEach((b) => (b.hidden = true));
+      copyBtn.hidden = false;
+      replayBtn.hidden = false;
+      textBox.hidden = false;
+      copyBtn.focus();
+    }
+
+    choices.forEach((b) =>
+      b.addEventListener('click', () => {
+        if (playing || !started) return finish();
+        if (b.getAttribute('aria-disabled') === 'true') return;
+        void decide(b.dataset.choice as Verdict);
+      }),
+    );
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(log);
+        note.textContent = 'Copied. Pipe it into shasum -a 256 and compare.';
+      } catch {
+        note.textContent = 'Copy blocked here. Open the hashed text below and copy it by hand.';
+        textBox.open = true;
+      }
+    });
+    replayBtn.addEventListener('click', () => {
+      title.focus();
+      void play(!reduce);
+    });
+
+    if (reduce || !('IntersectionObserver' in window)) {
+      void play(false);
+      return;
+    }
+    root.dataset.state = 'armed';
+    note.textContent = 'Approve and Reject unlock when a call is held.';
+    const io = new IntersectionObserver(
+      (seen) => {
+        if (!started && seen.some((s) => s.isIntersecting)) {
+          io.disconnect();
+          void play(true);
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(ledger);
+    root.addEventListener('focusin', () => {
+      if (!started) {
+        io.disconnect();
+        void play(true);
+      }
+    });
+  }
+</script>

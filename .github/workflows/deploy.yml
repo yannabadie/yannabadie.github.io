@@ -1,0 +1,67 @@
+# Builds the site and publishes it to the GitHub Pages user site https://yannabadie.github.io/.
+# One-time setup by the repository owner: the repository is named yannabadie.github.io, and
+# Settings > Pages > Build and deployment > Source is set to "GitHub Actions".
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: every job can only read the repository unless it asks for more.
+# The deploy job alone gets pages: write and id-token: write.
+permissions:
+  contents: read
+
+# One Pages deployment at a time. A run in progress always finishes; the newest waiting run goes next.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify the site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Actions are pinned to the commit of a release tag; the comment names the tag.
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Node 26 is the current LTS line and the version the site is built and tested with locally.
+      # No dependency cache: what gets deployed is installed from package-lock.json on every run.
+      - name: Set up Node.js 26
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Install dependencies from package-lock.json
+        run: npm ci
+
+      # npm run verify = build, astro check, byte budgets, HTML validity.
+      - name: Build and verify
+        run: npm run verify
+
+      - name: Upload the built site
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write # create the Pages deployment
+      id-token: write # OIDC token that proves the deployment comes from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

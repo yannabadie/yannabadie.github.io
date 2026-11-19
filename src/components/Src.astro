@@ -1,0 +1,16 @@
+---
+/** Source tag: links a claim to the README line that makes it, pinned to the commit we read. */
+import { lineLabel, readmeLine } from '../lib/sources';
+
+interface Props {
+  /** README line or range, e.g. "7" or "9-12". */
+  l: string;
+}
+
+const { l } = Astro.props;
+const project = Astro.locals.project;
+if (!project) throw new Error('<Src /> needs Astro.locals.project (set by the case-study page)');
+const url = readmeLine(project.repo, project.readmeSha, l);
+---
+
+<a class="src" href={url}>README {lineLabel(l)}<span class="sr-only-x"> (source in the {project.title} repository)</span></a>

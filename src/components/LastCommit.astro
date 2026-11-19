@@ -1,0 +1,8 @@
+---
+/** Last-commit date of the current case study, from its frontmatter (single source of truth). */
+import { formatDate } from '../lib/sources';
+const project = Astro.locals.project;
+if (!project) throw new Error('<LastCommit /> needs Astro.locals.project (set by the case-study page)');
+---
+
+{formatDate(project.lastPush)}

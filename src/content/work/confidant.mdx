@@ -1,0 +1,70 @@
+---
+title: Confidant
+slug: confidant
+oneLiner: A personal assistant that keeps private facts on the device. The cloud model writes with placeholders, Confidant fills in the real values locally, and every outbound call leaves a receipt.
+status: hackathon
+statusLabel: Hackathon
+year: 2026
+stack: [Python, SQLite FTS5, Nemotron on Nebius Token Factory, MCP, Gradio]
+repo: https://github.com/yannabadie/confidant
+readmeSha: 2042c9b80a4108ccecf86e39d1b026b6b11a1dcb
+demo: https://huggingface.co/spaces/yannabadie/confidant
+demoLabel: Hosted demo on Hugging Face (replay)
+video: https://youtu.be/4WIy2Oa15bo
+videoLabel: Video walkthrough, 2 min 40 s
+order: 3
+demoOnHome: true
+lastPush: 2026-10-29
+summary:
+  before: "A personal assistant where "
+  mark: "the cloud model never sees a private fact"
+  after: ". It writes placeholders, and the device fills them in."
+  line: "7-8"
+---
+
+## The problem
+
+A useful assistant has to remember appointments, health, money and family. That is exactly the data you should not paste into a cloud model. <Src l="18-19" /> Any team that sends customer or staff data to a hosted model faces the same question: what left, and who can prove it?
+
+## What I built
+
+- Memory with receipts: each memory records who said it, where it came from, when, and every correction. Answers cite memories. <Src l="22-23" />
+- A guard that classes memories as public, personal or private, and replaces private ones with placeholders before any call leaves the device. <Src l="24-26" />
+- Late binding: <Mark l="7-8">the cloud model never sees a private fact</Mark>. It answers with a placeholder, and Confidant fills in the real value locally.
+- A receipt for every outbound call: provider, model, tokens, memories sent and withheld, and a SHA-256 of the exact messages. <Src l="27-29" />
+- An MCP server with 6 tools that never hands a client a private memory's text. <Src l="116-118" />
+
+## System as built
+
+<Flow
+  steps={[
+    { t: 'You ask', s: 'Question', d: 'From the web UI, the CLI, or an agent over MCP.', l: '85' },
+    { t: 'Routing on the device', s: 'Local routing', d: 'Local rules first; a small model routes the rest, with values masked.', l: '69-70' },
+    { t: 'Memory search', s: 'Memory search', d: 'SQLite + FTS5, with provenance and versions.', l: '87' },
+    { t: 'The guard decides', s: 'Guard', d: 'Public and personal memories pass; private ones become placeholders.', l: '88-89' },
+    { t: 'The cloud model writes', s: 'Cloud model', d: 'Nemotron writes the answer; private items stay placeholders.', l: '89-91' },
+    { t: 'Late binding', s: 'Late binding', d: 'Confidant fills in the real values on the device.', l: '91' },
+    { t: 'Receipt', s: 'Receipt', d: 'Hash, tokens, and what was sent or withheld.', l: '93' },
+  ]}
+/>
+
+## How it is verified
+
+- An offline test suite with all HTTP mocked. <Src l="241" />
+- Adversarial leak test: reviewers that did not write the guard wrote the attack rounds, and NVIDIA Nemotron 3 Ultra wrote round 9. Every finding became a test. All 199 attack messages now run in the suite and none leaks, per README. <Src l="153-180" />
+- A "Prove it" check rebuilds the last turn with private appointments moved and compares SHA-256 hashes. They are identical for every demo question. <Src l="32-36" />
+- The README calls this a regression result, not an estimate: no new attack round has been written against this version yet. <Src l="180-182" />
+
+## What this means for your project
+
+- If an assistant touches HR, health or finance data, a guard plus late binding keeps the values out of the hosted model's context. That is an **Agent or MCP build**.
+- Receipts turn "what did we send to the vendor today?" into a table, not a guess. <Src l="30" />
+- A **Microsoft 365 and Entra security review** covers the other half: what the connector itself can reach.
+
+## Status & limits
+
+- Hackathon project, built for the Nebius × NVIDIA Global AI Hackathon, Personal AI track. <Src l="14" />
+- The hosted demo replays turns recorded live on 28 October 2026 and says so. With your own key, the same code runs live. <Src l="10-11" />
+- Synthetic persona only. The guard is a strong default, not a formal information-flow proof; paraphrases and relative dates are not detected. <Src l="147-152" />
+- Confidant writes its own receipts; they are not an external audit. <Src l="227" />
+- Last commit: <LastCommit />.

@@ -1,0 +1,14 @@
+---
+/** Highlighted claim inside a case study. Links to the README line that proves it. */
+import Hl from './Hl.astro';
+import { lineLabel, readmeLine } from '../lib/sources';
+
+interface Props {
+  l: string;
+}
+const { l } = Astro.props;
+const project = Astro.locals.project;
+if (!project) throw new Error('<Mark /> needs Astro.locals.project (set by the case-study page)');
+---
+
+<Hl href={readmeLine(project.repo, project.readmeSha, l)} proof={`${project.title} README ${lineLabel(l)}`}><slot /></Hl>

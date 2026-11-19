@@ -1,0 +1,15 @@
+---
+/**
+ * Status on one axis, the project's stage. Colour carries the meaning:
+ * Released (a tagged release exists) = approve; Alpha / Hackathon = hold; Working (no release) = neutral.
+ * Recency is shown separately as the last-commit date.
+ */
+interface Props {
+  status: 'working' | 'alpha' | 'hackathon' | 'production';
+  label: string;
+}
+const { status, label } = Astro.props;
+const tone = /^released$/i.test(label) || status === 'production' ? 'approve' : status === 'alpha' || status === 'hackathon' ? 'hold' : 'neutral';
+---
+
+<span class:list={['pill', `pill-${tone}`]}><span class="pill-dot" aria-hidden="true"></span><span class="sr-only-x">Status: </span>{label}</span>
