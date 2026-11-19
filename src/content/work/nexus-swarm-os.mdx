@@ -9,7 +9,7 @@ stack: [Python 3.11+, 7 provider SDK drivers, Docker, FastAPI, MCP]
 repo: https://github.com/yannabadie/nexus-swarm-os
 readmeSha: 20b9c6c261653229acf15a3e49e7c3a82d23322c
 order: 4
-lastPush: 2026-03-17
+lastPush: 2026-11-19
 summary:
   before: "Multi-model orchestration in which "
   mark: "the opposite model checks each tool result"
@@ -50,7 +50,7 @@ The README calls the platform NEXUS. <Src l="1" />
 - A pytest suite under `tests/`. The README's coverage command fails below 60%. <Src l="329-332" />
 - Test counts are published per CI run in an `evidence-ledger` artifact, not hard-coded in the README. <Src l="341" />
 - ShadowRedTeam runs automated red-team tests of agent outputs. <Src l="279" />
-- The last fully green [CI run](https://github.com/yannabadie/nexus-swarm-os/actions) was on 17 March 2026.
+- On [PR #1](https://github.com/yannabadie/nexus-swarm-os/pull/1) (merged 19 November 2026), [NEXUS CI](https://github.com/yannabadie/nexus-swarm-os/actions/runs/44507458869) passed all push/PR checks (Tests on Python 3.11–3.13, Lint & Types, Security, Swarm evaluation harness, Shadow Red Team snapshot).
 
 ## What this means for your project
 
@@ -60,7 +60,7 @@ The README calls the platform NEXUS. <Src l="1" />
 
 ## Status & limits
 
-- Working codebase, with low activity since March 2026. Last commit: <LastCommit />. No tagged release.
-- CI has not passed since then; later runs fail at lint and tests. Treat it as a reference implementation of these patterns, not a maintained product.
+- Working reference codebase: [PR #1](https://github.com/yannabadie/nexus-swarm-os/pull/1) was merged on 19 November 2026 so push/PR CI passes (`Tests 3.11–3.13`, `Lint & Types`, `Security`, `Swarm evaluation harness`). Last commit: <LastCommit />. No tagged release.
+- Scheduled nightly stress tests (`Torture Protocol`) still report 20/76 known failures tied to an open saga compensation design question. Treat the repo as a reference implementation of these patterns rather than a turnkey product.
 - No hosted demo. The research CLI has a mock mode that needs no API keys. <Src l="86" />
 - SwarmProof reuses its swarm engine.
