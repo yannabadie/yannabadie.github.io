@@ -10,7 +10,6 @@ import tailwindcss from '@tailwindcss/vite';
  * their absolute URLs from `site`; mirrored as the fallback of SITE in src/consts.ts.
  */
 const PRODUCT_SITEMAPS = [
-  'https://yannabadie.github.io/facturkit-2027/sitemap.xml',
   'https://yannabadie.github.io/observatoire-dpe-rge-france/sitemap.xml',
   'https://yannabadie.github.io/eu-tenders-opendata-explorer/sitemap.xml',
   'https://yannabadie.github.io/cra-sbom-guard/sitemap.xml',

@@ -3,7 +3,6 @@ import { SITE } from '../consts';
 
 const SITEMAPS = [
   `${SITE}/sitemap-index.xml`,
-  `${SITE}/facturkit-2027/sitemap.xml`,
   `${SITE}/observatoire-dpe-rge-france/sitemap.xml`,
   `${SITE}/eu-tenders-opendata-explorer/sitemap.xml`,
   `${SITE}/cra-sbom-guard/sitemap.xml`,
